@@ -17,6 +17,8 @@ import org.yakovb.ratelimiter.model.UserRequestDataStore;
 // javadoc: point is to describe the intended behaviour of the class
 public class TokenBucketStrategyTest {
 
+  private static final int INSERTION_REFERENCE = 123;
+
   private Map<String, TokenBucket> backingMap;
   private TokenBucketStrategy strategy;
 
@@ -48,10 +50,12 @@ public class TokenBucketStrategyTest {
     backingMap.put("x", bucketWithIdAndTokens("x", 2));
 
     Optional<RateLimitResult> result = strategy.apply(requestWithId("x"));
+    TokenBucket bucket = backingMap.get("x");
 
     assertThat(result).isEmpty();
     assertThat(backingMap).hasSize(1);
-    assertThat(backingMap.get("x").getRemainingTokens()).isEqualTo(1);
+    assertThat(bucket.getRemainingTokens()).isEqualTo(1);
+    assertThat(bucket.getInsertionReference()).isNotEqualTo(INSERTION_REFERENCE);
   }
   //TODO has sufficient tokens debits one
   //TODO has insufficient tokens returns a limit
@@ -65,7 +69,7 @@ public class TokenBucketStrategyTest {
     return TokenBucket.builder()
         .userId(id)
         .remainingTokens(tokens)
-        .insertionReference(123)
+        .insertionReference(INSERTION_REFERENCE)
         .build();
   }
 }
