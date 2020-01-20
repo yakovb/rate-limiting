@@ -38,15 +38,34 @@ public class TokenBucketStrategyTest {
     Optional<RateLimitResult> result = strategy.apply(requestWithId("x"));
 
     assertThat(result).isEmpty();
-    assertThat(backingMap.get("x")).isNotNull();
     assertThat(backingMap).hasSize(1);
+    assertThat(backingMap.get("x")).isNotNull();
   }
+
   //TODO existing entry updates it ('it' being based on user id)
+  @Test
+  public void existingUserUpdatedUponNewRequest() {
+    backingMap.put("x", bucketWithIdAndTokens("x", 2));
+
+    Optional<RateLimitResult> result = strategy.apply(requestWithId("x"));
+
+    assertThat(result).isEmpty();
+    assertThat(backingMap).hasSize(1);
+    assertThat(backingMap.get("x").getRemainingTokens()).isEqualTo(1);
+  }
   //TODO has sufficient tokens debits one
   //TODO has insufficient tokens returns a limit
   //TODO has insufficient tokens returns correct wait period
 
   private static Request requestWithId(String id) {
     return new RequestImpl(id, Instant.now());
+  }
+
+  private static TokenBucket bucketWithIdAndTokens(String id, int tokens) {
+    return TokenBucket.builder()
+        .userId(id)
+        .remainingTokens(tokens)
+        .insertionReference(123)
+        .build();
   }
 }
