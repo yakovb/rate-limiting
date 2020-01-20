@@ -4,8 +4,16 @@ import java.util.Optional;
 import org.yakovb.ratelimiter.model.RateLimitResult;
 import org.yakovb.ratelimiter.model.RateLimitStrategy;
 import org.yakovb.ratelimiter.model.Request;
+import org.yakovb.ratelimiter.model.UserRequestDataStore;
 
+//TODO javadoc, basic explanation of token bucket algo
 public class TokenBucketStrategy implements RateLimitStrategy {
+
+  private final UserRequestDataStore<String, TokenBucket> store;
+
+  public TokenBucketStrategy(UserRequestDataStore<String, TokenBucket> store) {
+    this.store = store;
+  }
 
   @Override
   public Optional<RateLimitResult> apply(Request request) {

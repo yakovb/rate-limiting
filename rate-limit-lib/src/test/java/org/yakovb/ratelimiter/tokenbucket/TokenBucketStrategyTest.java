@@ -8,7 +8,7 @@ import org.yakovb.ratelimiter.RequestImpl;
 // javadoc: point is to describe the intended behaviour of the class
 public class TokenBucketStrategyTest {
 
-  private TokenBucketStrategy strategy = new TokenBucketStrategy();
+  private TokenBucketStrategy strategy = new TokenBucketStrategy(null);
 
   @Test(expected = IllegalArgumentException.class)
   public void emptyIdThrowsException() {
