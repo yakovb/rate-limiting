@@ -24,6 +24,7 @@ xxx how to add other algos
 xxx how to build the lib
 xxx running tests (and what's tested. Properties?)
 xxx how to include in a Boot project
+xxx getting and running the uberjar
 xxx configuration options
 
 ## Exercising the module
