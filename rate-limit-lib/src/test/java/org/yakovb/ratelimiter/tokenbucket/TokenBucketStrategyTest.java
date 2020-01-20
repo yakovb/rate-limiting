@@ -31,7 +31,6 @@ public class TokenBucketStrategyTest {
     strategy.apply(new RequestImpl("", Instant.now()));
   }
 
-  //TODO no previous entry creates new one
   @Test
   public void absentUserDataCreatesNewEntry() {
     assertThat(backingMap).isEmpty();

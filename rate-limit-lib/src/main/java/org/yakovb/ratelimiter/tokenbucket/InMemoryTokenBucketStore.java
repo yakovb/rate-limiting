@@ -18,13 +18,15 @@ public class InMemoryTokenBucketStore implements UserRequestDataStore<String, To
   public TokenBucket computeIfAbsent(
       String key,
       Function<? super String, ? extends TokenBucket> updateFunction) {
-    return null;
+
+    return store.computeIfAbsent(key, updateFunction);
   }
 
   @Override
   public Optional<TokenBucket> computeIfPresent(
       String key,
       BiFunction<? super String, ? super TokenBucket, ? extends TokenBucket> updateFunction) {
-    return Optional.empty();
+
+    return Optional.ofNullable(store.computeIfPresent(key, updateFunction));
   }
 }
