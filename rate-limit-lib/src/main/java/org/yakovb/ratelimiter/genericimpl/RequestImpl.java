@@ -1,4 +1,4 @@
-package org.yakovb.ratelimiter;
+package org.yakovb.ratelimiter.genericimpl;
 
 import java.time.Instant;
 import java.util.Objects;
