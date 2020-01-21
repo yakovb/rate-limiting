@@ -59,7 +59,7 @@ public class TokenBucketStrategyTest {
   }
 
   @Test
-  public void existingUserWithInsufficientTokensGetsBlocked() {
+  public void existingUserWithInsufficientTokensGetsBlockedWithWait() {
     backingMap.put(USER_ID, bucketWithIdAndTokensAndReset(USER_ID, 0, Instant.now().plusSeconds(10)));
 
     Optional<RateLimitResult> result = strategy.apply(requestWithId(USER_ID));
@@ -75,8 +75,19 @@ public class TokenBucketStrategyTest {
         "Rate limit exceeded. Try again in 10 seconds");
   }
 
-  //TODO has insufficient tokens returns correct wait period
   //TODO tokens hitting zero sets limit-exceeded flag
+  @Test
+  public void tokensReachingZeroSetsLimitExceededFlag() {
+    backingMap.put(USER_ID, bucketWithIdAndTokens(USER_ID, 1));
+
+    Optional<RateLimitResult> result = strategy.apply(requestWithId(USER_ID));
+    TokenBucket bucket = backingMap.get(USER_ID);
+
+    assertThat(result).isEmpty();
+    assertThat(backingMap).hasSize(1);
+    assertThat(bucket.getRemainingTokens()).isEqualTo(0);
+    assertThat(bucket.isExceededLimit()).isTrue();
+  }
   //TODO reset on new wait period and tokens zero
   //TODO reset on new wait period and tokens > zero
 
