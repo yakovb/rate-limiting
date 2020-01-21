@@ -1,7 +1,10 @@
 package org.yakovb.ratelimiter.tokenbucket;
 
+import java.time.Duration;
+import java.time.Instant;
 import java.util.Optional;
 import java.util.Random;
+import org.yakovb.ratelimiter.genericimpl.RateLimitResultImpl;
 import org.yakovb.ratelimiter.model.RateLimitResult;
 import org.yakovb.ratelimiter.model.RateLimitStrategy;
 import org.yakovb.ratelimiter.model.Request;
@@ -41,13 +44,22 @@ public class TokenBucketStrategy implements RateLimitStrategy {
 
     // We're defo working with an existing bucket/user
 
-    store.computeIfPresent(
-        requesterId,
-        (key, bucket) -> TokenBucket.builder()
-            .userId(requesterId)
-            .remainingTokens(bucket.getRemainingTokens() - 1)
-            .build());
+    // Still got tokens
+    if (tokenBucket.getRemainingTokens() > 0) {
+      store.computeIfPresent(
+          requesterId,
+          (key, bucket) -> TokenBucket.builder()
+              .userId(requesterId)
+              .remainingTokens(bucket.getRemainingTokens() - 1)
+              .build());
 
-    return Optional.empty();
+      return Optional.empty();
+    }
+
+    // No more tokens
+    long waitInSeconds = Duration
+        .between(Instant.now(), tokenBucket.getBucketResetTime())
+        .toMillis() / 1000;
+    return Optional.of(new RateLimitResultImpl(waitInSeconds));
   }
 }

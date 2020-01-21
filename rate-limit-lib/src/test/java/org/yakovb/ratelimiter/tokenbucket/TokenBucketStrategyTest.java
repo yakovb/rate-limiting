@@ -8,7 +8,7 @@ import java.util.Map;
 import java.util.Optional;
 import org.junit.Before;
 import org.junit.Test;
-import org.yakovb.ratelimiter.RequestImpl;
+import org.yakovb.ratelimiter.genericimpl.RequestImpl;
 import org.yakovb.ratelimiter.model.RateLimitResult;
 import org.yakovb.ratelimiter.model.Request;
 
@@ -58,7 +58,6 @@ public class TokenBucketStrategyTest {
     assertThat(bucket.getInsertionReference()).isNotEqualTo(INSERTION_REFERENCE);
   }
 
-  //TODO has insufficient tokens returns a limit
   @Test
   public void existingUserWithInsufficientTokensGetsBlocked() {
     backingMap.put(USER_ID, bucketWithIdAndTokensAndReset(USER_ID, 0, Instant.now().plusSeconds(10)));
@@ -77,7 +76,10 @@ public class TokenBucketStrategyTest {
   }
 
   //TODO has insufficient tokens returns correct wait period
-  //TODO reset on new wait period
+  //TODO tokens hitting zero sets limit-exceeded flag
+  //TODO reset on new wait period and tokens zero
+  //TODO reset on new wait period and tokens > zero
+
   //TODO new entry has correct token size (full bucket - 1)
   //TODO new entry has correct reset time
 
