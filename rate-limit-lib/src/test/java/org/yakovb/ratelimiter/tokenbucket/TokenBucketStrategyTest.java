@@ -75,7 +75,6 @@ public class TokenBucketStrategyTest {
         "Rate limit exceeded. Try again in 10 seconds");
   }
 
-  //TODO tokens hitting zero sets limit-exceeded flag
   @Test
   public void tokensReachingZeroSetsLimitExceededFlag() {
     backingMap.put(USER_ID, bucketWithIdAndTokens(USER_ID, 1));
@@ -88,6 +87,7 @@ public class TokenBucketStrategyTest {
     assertThat(bucket.getRemainingTokens()).isEqualTo(0);
     assertThat(bucket.isExceededLimit()).isTrue();
   }
+
   //TODO reset on new wait period and tokens zero
   //TODO reset on new wait period and tokens > zero
 
