@@ -4,6 +4,8 @@ import org.yakovb.ratelimiter.model.RateLimitResult;
 
 public class RateLimitResultImpl implements RateLimitResult {
 
+  //TODO return the duration to wait as well
+
   private final long waitInSeconds;
 
   public RateLimitResultImpl(long waitInSeconds) {

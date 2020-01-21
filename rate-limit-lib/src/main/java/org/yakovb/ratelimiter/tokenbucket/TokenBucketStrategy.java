@@ -58,6 +58,8 @@ public class TokenBucketStrategy implements RateLimitStrategy {
           requesterId,
           (key, bucket) -> TokenBucket.builder()
               .userId(requesterId)
+              .insertionReference(insertionRef) //TODO check that insertion ref is used everywhere
+              .bucketResetTime(bucket.getBucketResetTime()) //TODO check that reset time is used everywhere
               .remainingTokens(remainingTokens)
               .exceededLimit(limitExceeded)
               .build());
@@ -66,6 +68,25 @@ public class TokenBucketStrategy implements RateLimitStrategy {
     }
 
     // No more tokens
+
+    // But maybe window has passed and bucket needs a reset
+    if (Instant.now().isAfter(tokenBucket.getBucketResetTime())) {
+      store.computeIfPresent(
+          requesterId,
+          (key, bucket) -> TokenBucket.builder()
+              .userId(requesterId)
+              .insertionReference(insertionRef)
+              .remainingTokens(tokenBucketLimits.getTokensPerWindow() - 1)
+              .bucketResetTime(Instant.now().plus(tokenBucketLimits.getTimeWindow()))
+              .exceededLimit(false)
+              .build()
+      );
+
+      return Optional.empty();
+
+    }
+
+    // Too early to reset. Block em
     long waitInSeconds = Duration
         .between(Instant.now(), tokenBucket.getBucketResetTime())
         .toMillis() / 1000;

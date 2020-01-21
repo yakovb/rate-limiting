@@ -1,6 +1,7 @@
 package org.yakovb.ratelimiter.tokenbucket;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.Mockito.when;
 
 import java.time.Duration;
 import java.time.Instant;
@@ -9,25 +10,34 @@ import java.util.Map;
 import java.util.Optional;
 import org.junit.Before;
 import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
+import org.mockito.junit.MockitoJUnitRunner;
 import org.yakovb.ratelimiter.genericimpl.RequestImpl;
 import org.yakovb.ratelimiter.model.RateLimitResult;
 import org.yakovb.ratelimiter.model.Request;
 
 //TODO example tests, also do a property test
 // javadoc: point is to describe the intended behaviour of the class
+@RunWith(MockitoJUnitRunner.class)
 public class TokenBucketStrategyTest {
 
   private static final int INSERTION_REFERENCE = 123;
-  public static final String USER_ID = "x";
+  private static final String USER_ID = "x";
+  private static final int MAX_TOKENS = 50;
 
-  private Map<String, TokenBucket> backingMap;
+  @Mock
   private TokenBucketLimits limits;
+  private Map<String, TokenBucket> backingMap;
   private TokenBucketStrategy strategy;
 
   @Before
   public void before() {
     backingMap = new HashMap<>();
-    limits = new TokenBucketLimits(Duration.ofMinutes(1), 50);
+    when(limits.getTokensPerWindow()).thenReturn(MAX_TOKENS);
+//    when(limits.getTimeWindow()).thenReturn(Duration.ofMinutes(1));
+
     strategy = new TokenBucketStrategy(new InMemoryTokenBucketStore(backingMap), limits);
   }
 
@@ -89,7 +99,7 @@ public class TokenBucketStrategyTest {
     assertThat(result).isNotEmpty();
     RateLimitResult rateLimitResult = result.get();
     assertThat(rateLimitResult.getMessage()).containsSubsequence(
-        "Rate limit exceeded. Try again in 10 seconds");
+        "Rate limit exceeded. Try again in 10 seconds"); //TODO flaky, get the duration directly instead
   }
 
   @Test
@@ -106,6 +116,19 @@ public class TokenBucketStrategyTest {
   }
 
   //TODO reset on new wait period and tokens zero
+  @Test
+  public void requestWithZeroTokens_but_inNewTokenWindowResetsBucket() {
+    when(limits.getTimeWindow()).thenReturn(Duration.ofNanos(1));
+    backingMap.put(USER_ID, bucketWithIdAndTokensAndReset(USER_ID, 0, Instant.now().minusSeconds(1)));
+
+    Optional<RateLimitResult> result = strategy.apply(requestWithId(USER_ID));
+    TokenBucket bucket = backingMap.get(USER_ID);
+
+    assertThat(result).isEmpty();
+    assertThat(backingMap).hasSize(1);
+    assertThat(bucket.getRemainingTokens()).isEqualTo(MAX_TOKENS - 1);
+  }
+
   //TODO reset on new wait period and tokens > zero
 
   private static Request requestWithId(String id) {
@@ -115,17 +138,18 @@ public class TokenBucketStrategyTest {
   private static TokenBucket bucketWithIdAndTokens(String id, int tokens) {
     return TokenBucket.builder()
         .userId(id)
-        .remainingTokens(tokens)
         .insertionReference(INSERTION_REFERENCE)
+        .remainingTokens(tokens)
+        .bucketResetTime(Instant.now().plusSeconds(60))
         .build();
   }
 
   private static TokenBucket bucketWithIdAndTokensAndReset(String id, int tokens, Instant reset) {
     return TokenBucket.builder()
         .userId(id)
+        .insertionReference(INSERTION_REFERENCE)
         .remainingTokens(tokens)
         .bucketResetTime(reset)
-        .insertionReference(INSERTION_REFERENCE)
         .build();
   }
 }
