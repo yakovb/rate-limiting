@@ -46,11 +46,15 @@ public class TokenBucketStrategy implements RateLimitStrategy {
 
     // Still got tokens
     if (tokenBucket.getRemainingTokens() > 0) {
+      int remainingTokens = tokenBucket.getRemainingTokens() - 1;
+      boolean limitExceeded = remainingTokens == 0;
+
       store.computeIfPresent(
           requesterId,
           (key, bucket) -> TokenBucket.builder()
               .userId(requesterId)
-              .remainingTokens(bucket.getRemainingTokens() - 1)
+              .remainingTokens(remainingTokens)
+              .exceededLimit(limitExceeded)
               .build());
 
       return Optional.empty();
