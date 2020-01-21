@@ -1,5 +1,6 @@
 package org.yakovb.ratelimiter.genericimpl;
 
+import java.time.Duration;
 import org.yakovb.ratelimiter.model.RateLimitResult;
 
 public class RateLimitResultImpl implements RateLimitResult {
@@ -15,5 +16,10 @@ public class RateLimitResultImpl implements RateLimitResult {
   @Override
   public String getMessage() {
     return String.format("Rate limit exceeded. Try again in %d seconds", waitInSeconds);
+  }
+
+  @Override
+  public Duration getWaitDuration() {
+    return Duration.ofSeconds(waitInSeconds);
   }
 }

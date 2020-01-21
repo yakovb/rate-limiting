@@ -1,5 +1,7 @@
 package org.yakovb.ratelimiter.model;
 
+import java.time.Duration;
+
 public interface RateLimitResult {
 
   int HTTP_CODE_TOO_MANY_REQUESTS = 429;
@@ -9,4 +11,6 @@ public interface RateLimitResult {
   }
 
   String getMessage();
+
+  Duration getWaitDuration();
 }

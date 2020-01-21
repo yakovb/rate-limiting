@@ -98,8 +98,9 @@ public class TokenBucketStrategyTest {
 
     assertThat(result).isNotEmpty();
     RateLimitResult rateLimitResult = result.get();
-    assertThat(rateLimitResult.getMessage()).containsSubsequence(
-        "Rate limit exceeded. Try again in 10 seconds"); //TODO flaky, get the duration directly instead
+    assertThat(rateLimitResult.getWaitDuration()).isBetween(
+            Duration.ofSeconds(9),
+            Duration.ofSeconds(11));
   }
 
   @Test
@@ -115,7 +116,6 @@ public class TokenBucketStrategyTest {
     assertThat(bucket.isExceededLimit()).isTrue();
   }
 
-  //TODO reset on new wait period and tokens zero
   @Test
   public void requestWithZeroTokens_but_inNewTokenWindowResetsBucket() {
     when(limits.getTimeWindow()).thenReturn(Duration.ofNanos(1));
