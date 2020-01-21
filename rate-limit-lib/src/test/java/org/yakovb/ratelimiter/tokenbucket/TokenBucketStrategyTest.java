@@ -129,7 +129,18 @@ public class TokenBucketStrategyTest {
     assertThat(bucket.getRemainingTokens()).isEqualTo(MAX_TOKENS - 1);
   }
 
-  //TODO reset on new wait period and tokens > zero
+  @Test
+  public void requestWithNonZeroTokens_but_inNewTokenWindowResetsBucket() {
+    when(limits.getTimeWindow()).thenReturn(Duration.ofNanos(1));
+    backingMap.put(USER_ID, bucketWithIdAndTokensAndReset(USER_ID, 10, Instant.now().minusSeconds(1)));
+
+    Optional<RateLimitResult> result = strategy.apply(requestWithId(USER_ID));
+    TokenBucket bucket = backingMap.get(USER_ID);
+
+    assertThat(result).isEmpty();
+    assertThat(backingMap).hasSize(1);
+    assertThat(bucket.getRemainingTokens()).isEqualTo(MAX_TOKENS - 1);
+  }
 
   private static Request requestWithId(String id) {
     return new RequestImpl(id, Instant.now());
