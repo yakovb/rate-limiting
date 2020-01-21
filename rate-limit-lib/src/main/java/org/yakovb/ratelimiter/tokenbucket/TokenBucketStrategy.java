@@ -1,6 +1,7 @@
 package org.yakovb.ratelimiter.tokenbucket;
 
 import java.util.Optional;
+import java.util.Random;
 import org.yakovb.ratelimiter.model.RateLimitResult;
 import org.yakovb.ratelimiter.model.RateLimitStrategy;
 import org.yakovb.ratelimiter.model.Request;
@@ -10,9 +11,11 @@ import org.yakovb.ratelimiter.model.UserRequestDataStore;
 public class TokenBucketStrategy implements RateLimitStrategy {
 
   private final UserRequestDataStore<String, TokenBucket> store;
+  private final Random random;
 
   public TokenBucketStrategy(UserRequestDataStore<String, TokenBucket> store) {
     this.store = store;
+    this.random = new Random();
   }
 
   @Override
@@ -22,12 +25,21 @@ public class TokenBucketStrategy implements RateLimitStrategy {
     // no entry? Make one and debit a token
     // has entry? debit token if remaining, else block and calc wait time
     String requesterId = request.getRequesterId();
+    int insertionRef = random.nextInt();
 
     TokenBucket tokenBucket = store.computeIfAbsent(
         requesterId,
         id -> TokenBucket.builder()
             .userId(id)
+            .insertionReference(insertionRef)
             .build());
+
+    // Early return if bucket was newly inserted with our newly minted insertion ref
+    if (tokenBucket.getInsertionReference() == insertionRef) {
+      return Optional.empty();
+    }
+
+    // We're defo working with an existing bucket/user
 
     store.computeIfPresent(
         requesterId,
