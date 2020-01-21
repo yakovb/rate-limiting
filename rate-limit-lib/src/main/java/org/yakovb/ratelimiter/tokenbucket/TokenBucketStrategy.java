@@ -14,10 +14,14 @@ import org.yakovb.ratelimiter.model.UserRequestDataStore;
 public class TokenBucketStrategy implements RateLimitStrategy {
 
   private final UserRequestDataStore<String, TokenBucket> store;
+  private final TokenBucketLimits tokenBucketLimits;
   private final Random random;
 
-  public TokenBucketStrategy(UserRequestDataStore<String, TokenBucket> store) {
+  public TokenBucketStrategy(
+      UserRequestDataStore<String, TokenBucket> store,
+      TokenBucketLimits tokenBucketLimits) {
     this.store = store;
+    this.tokenBucketLimits = tokenBucketLimits;
     this.random = new Random();
   }
 
@@ -35,6 +39,7 @@ public class TokenBucketStrategy implements RateLimitStrategy {
         id -> TokenBucket.builder()
             .userId(id)
             .insertionReference(insertionRef)
+            .remainingTokens(tokenBucketLimits.getTokensPerWindow() - 1)
             .build());
 
     // Early return if bucket was newly inserted with our newly minted insertion ref

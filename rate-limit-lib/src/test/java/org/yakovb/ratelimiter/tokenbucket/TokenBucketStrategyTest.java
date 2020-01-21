@@ -2,6 +2,7 @@ package org.yakovb.ratelimiter.tokenbucket;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import java.time.Duration;
 import java.time.Instant;
 import java.util.HashMap;
 import java.util.Map;
@@ -20,12 +21,14 @@ public class TokenBucketStrategyTest {
   public static final String USER_ID = "x";
 
   private Map<String, TokenBucket> backingMap;
+  private TokenBucketLimits limits;
   private TokenBucketStrategy strategy;
 
   @Before
   public void before() {
     backingMap = new HashMap<>();
-    strategy = new TokenBucketStrategy(new InMemoryTokenBucketStore(backingMap));
+    limits = new TokenBucketLimits(Duration.ofMinutes(1), 50);
+    strategy = new TokenBucketStrategy(new InMemoryTokenBucketStore(backingMap), limits);
   }
 
   @Test(expected = IllegalArgumentException.class)
@@ -42,6 +45,20 @@ public class TokenBucketStrategyTest {
     assertThat(result).isEmpty();
     assertThat(backingMap).hasSize(1);
     assertThat(backingMap.get(USER_ID)).isNotNull();
+  }
+
+  @Test
+  public void newlyCreatedUserHasCorrectTokenCount() {
+    assertThat(backingMap).isEmpty();
+
+    Optional<RateLimitResult> result = strategy.apply(requestWithId(USER_ID));
+
+    assertThat(result).isEmpty();
+    assertThat(backingMap).hasSize(1);
+
+    TokenBucket userBucket = backingMap.get(USER_ID);
+    assertThat(userBucket).isNotNull();
+    assertThat(userBucket.getRemainingTokens()).isEqualTo(limits.getTokensPerWindow() - 1);
   }
 
   @Test
@@ -90,9 +107,6 @@ public class TokenBucketStrategyTest {
 
   //TODO reset on new wait period and tokens zero
   //TODO reset on new wait period and tokens > zero
-
-  //TODO new entry has correct token size (full bucket - 1)
-  //TODO new entry has correct reset time
 
   private static Request requestWithId(String id) {
     return new RequestImpl(id, Instant.now());
