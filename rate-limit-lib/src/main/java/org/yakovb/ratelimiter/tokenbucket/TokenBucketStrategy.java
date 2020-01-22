@@ -31,7 +31,7 @@ public class TokenBucketStrategy implements RateLimitStrategy {
     // Init some bookkeeping values
     String requesterId = request.getRequesterId();
     int insertionRef = random.nextInt();
-    Instant now = Instant.now();
+    Instant now = Instant.now(); //TODO use instant from the request!!!
 
     // Assume we have to create a new bucket for a new user
     TokenBucket tokenBucket = createNewBucket(requesterId, insertionRef, now);
