@@ -11,7 +11,6 @@ import java.util.Optional;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
-import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
 import org.yakovb.ratelimiter.genericimpl.RequestImpl;
@@ -36,7 +35,7 @@ public class TokenBucketStrategyTest {
   public void before() {
     backingMap = new HashMap<>();
     when(limits.getTokensPerWindow()).thenReturn(MAX_TOKENS);
-//    when(limits.getTimeWindow()).thenReturn(Duration.ofMinutes(1));
+    when(limits.getTimeWindow()).thenReturn(Duration.ofSeconds(1));
 
     strategy = new TokenBucketStrategy(new InMemoryTokenBucketStore(backingMap), limits);
   }
