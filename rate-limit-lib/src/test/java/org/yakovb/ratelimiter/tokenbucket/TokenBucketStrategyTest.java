@@ -35,6 +35,7 @@ public class TokenBucketStrategyTest {
   public void before() {
     backingMap = new HashMap<>();
     when(limits.getTokensPerWindow()).thenReturn(MAX_TOKENS);
+    when(limits.getTimeWindow()).thenReturn(Duration.ofSeconds(1));
 
     strategy = new TokenBucketStrategy(new InMemoryTokenBucketStore(backingMap), limits);
   }

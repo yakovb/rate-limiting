@@ -13,6 +13,7 @@ import org.yakovb.ratelimiter.model.UserRequestDataStore;
 //TODO javadoc, basic explanation of token bucket algo
 public class TokenBucketStrategy implements RateLimitStrategy {
 
+  private static final Optional<RateLimitResult> ALLOW_REQUEST = Optional.empty();
   private final UserRequestDataStore<String, TokenBucket> store;
   private final TokenBucketLimits tokenBucketLimits;
   private final Random random;
@@ -27,67 +28,81 @@ public class TokenBucketStrategy implements RateLimitStrategy {
 
   @Override
   public Optional<RateLimitResult> apply(Request request) {
-    // TODO: outline
-    // check request's user against entry in token bucket (take the bucket out of this class)
-    // no entry? Make one and debit a token
-    // has entry? debit token if remaining, else block and calc wait time
+    // Init some bookkeeping values
     String requesterId = request.getRequesterId();
     int insertionRef = random.nextInt();
+    Instant now = Instant.now();
 
-    TokenBucket tokenBucket = store.computeIfAbsent(
+    // Assume we have to create a new bucket for a new user
+    TokenBucket tokenBucket = createNewBucket(requesterId, insertionRef, now);
+    if (newBucketWasCreated(insertionRef, tokenBucket)) {
+      return ALLOW_REQUEST;
+    }
+    // We now know we're working with an existing bucket and user...
+
+    if (now.isAfter(tokenBucket.getBucketResetTime())) {
+      // New time window, so user gets a new bucket and we allow the request
+      resetBucket(requesterId, insertionRef, now);
+      return ALLOW_REQUEST;
+    }
+
+    if (tokenBucket.getRemainingTokens() > 0) {
+      // User still has tokens, so debit one and allow request
+      debitTokenBucket(requesterId, insertionRef, tokenBucket);
+      return ALLOW_REQUEST;
+    }
+
+    // By this point we know the user has no tokens and it's too early to reset the window
+    // Block time
+    long waitInSeconds = computeWaitTime(now, tokenBucket);
+    return Optional.of(new RateLimitResultImpl(waitInSeconds));
+  }
+
+  private static boolean newBucketWasCreated(int insertionRef, TokenBucket tokenBucket) {
+    return tokenBucket.getInsertionReference() == insertionRef;
+  }
+
+  private TokenBucket createNewBucket(String requesterId, int insertionRef, Instant now) {
+    return store.computeIfAbsent(
         requesterId,
         id -> TokenBucket.builder()
             .userId(id)
             .insertionReference(insertionRef)
             .remainingTokens(tokenBucketLimits.getTokensPerWindow() - 1)
-            .bucketResetTime(Instant.now().plus(tokenBucketLimits.getTimeWindow()))
+            .bucketResetTime(now.plus(tokenBucketLimits.getTimeWindow()))
             .exceededLimit(false)
             .build());
+  }
 
-    // Early return if bucket was newly inserted with our newly minted insertion ref
-    if (tokenBucket.getInsertionReference() == insertionRef) {
-      return Optional.empty();
-    }
+  private void resetBucket(String requesterId, int insertionRef, Instant now) {
+    store.computeIfPresent(
+        requesterId,
+        (key, bucket) -> TokenBucket.builder()
+            .userId(requesterId)
+            .insertionReference(insertionRef)
+            .remainingTokens(tokenBucketLimits.getTokensPerWindow() - 1)
+            .bucketResetTime(now.plus(tokenBucketLimits.getTimeWindow()))
+            .exceededLimit(false)
+            .build());
+  }
 
-    // We're defo working with an existing bucket/user
+  private void debitTokenBucket(String requesterId, int insertionRef, TokenBucket tokenBucket) {
+    int remainingTokens = tokenBucket.getRemainingTokens() - 1;
+    boolean limitExceeded = remainingTokens == 0;
+    store.computeIfPresent(
+        requesterId,
+        (key, bucket) -> TokenBucket.builder()
+            .userId(requesterId)
+            .insertionReference(insertionRef)
+            .bucketResetTime(bucket.getBucketResetTime())
+            .remainingTokens(remainingTokens)
+            .exceededLimit(limitExceeded)
+            .build());
+  }
 
-    // But maybe window has passed and bucket needs a reset
-    if (Instant.now().isAfter(tokenBucket.getBucketResetTime())) {
-      store.computeIfPresent(
-          requesterId,
-          (key, bucket) -> TokenBucket.builder()
-              .userId(requesterId)
-              .insertionReference(insertionRef)
-              .remainingTokens(tokenBucketLimits.getTokensPerWindow() - 1)
-              .bucketResetTime(Instant.now().plus(tokenBucketLimits.getTimeWindow()))
-              .exceededLimit(false)
-              .build());
-
-      return Optional.empty();
-    }
-
-    // Still got tokens
-    if (tokenBucket.getRemainingTokens() > 0) {
-      int remainingTokens = tokenBucket.getRemainingTokens() - 1;
-      boolean limitExceeded = remainingTokens == 0;
-
-      store.computeIfPresent(
-          requesterId,
-          (key, bucket) -> TokenBucket.builder()
-              .userId(requesterId)
-              .insertionReference(insertionRef)
-              .bucketResetTime(bucket.getBucketResetTime())
-              .remainingTokens(remainingTokens)
-              .exceededLimit(limitExceeded)
-              .build());
-
-      return Optional.empty();
-    }
-
-    // No tokens and too early to reset. Block em
-    long waitInSeconds = Duration
-        .between(Instant.now(), tokenBucket.getBucketResetTime())
+  private static long computeWaitTime(Instant now, TokenBucket tokenBucket) {
+    return Duration
+        .between(now, tokenBucket.getBucketResetTime())
         .toMillis() / 1000;
-    return Optional.of(new RateLimitResultImpl(waitInSeconds));
   }
 }
