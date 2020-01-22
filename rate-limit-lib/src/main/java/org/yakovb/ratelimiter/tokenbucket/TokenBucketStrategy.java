@@ -40,6 +40,8 @@ public class TokenBucketStrategy implements RateLimitStrategy {
             .userId(id)
             .insertionReference(insertionRef)
             .remainingTokens(tokenBucketLimits.getTokensPerWindow() - 1)
+            .bucketResetTime(Instant.now().plus(tokenBucketLimits.getTimeWindow()))
+            .exceededLimit(false)
             .build());
 
     // Early return if bucket was newly inserted with our newly minted insertion ref
@@ -73,8 +75,8 @@ public class TokenBucketStrategy implements RateLimitStrategy {
           requesterId,
           (key, bucket) -> TokenBucket.builder()
               .userId(requesterId)
-              .insertionReference(insertionRef) //TODO check that insertion ref is used everywhere
-              .bucketResetTime(bucket.getBucketResetTime()) //TODO check that reset time is used everywhere
+              .insertionReference(insertionRef)
+              .bucketResetTime(bucket.getBucketResetTime())
               .remainingTokens(remainingTokens)
               .exceededLimit(limitExceeded)
               .build());
