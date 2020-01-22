@@ -75,8 +75,6 @@ public class TokenBucketStrategyPropertyTest {
           limits.getTokensPerWindow() - 1); // reset window and debit single token
     }
   }
-  //TODO empty buckets stay empty until reset time
-  //TODO empty bucket time remaining always accurate += 1 second
 
   private static TokenBucketStrategy createStrategy(Map<String, TokenBucket> map, TokenBucketLimits limits) {
     return new TokenBucketStrategy(
