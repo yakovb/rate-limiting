@@ -1,6 +1,7 @@
 package org.yakovb.ratelimiter.tokenbucket;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.yakovb.ratelimiter.tokenbucket.generators.TestingBucketGenerator.TestingBucketBundle;
 
 import com.pholser.junit.quickcheck.From;
 import com.pholser.junit.quickcheck.Property;
@@ -11,20 +12,35 @@ import java.util.HashMap;
 import java.util.Map;
 import org.junit.runner.RunWith;
 import org.yakovb.ratelimiter.genericimpl.RequestImpl;
-import org.yakovb.ratelimiter.tokenbucket.generators.TokenBucketGenerator;
-import org.yakovb.ratelimiter.tokenbucket.generators.TokenBucketLimitsGenerator;
+import org.yakovb.ratelimiter.tokenbucket.generators.TestingBucketGenerator;
 
 //TODO javadoc: explain purpose of property tests for this class
 // ie ensure invariants hold
 @RunWith(JUnitQuickcheck.class)
 public class TokenBucketStrategyPropertyTest {
 
-  //TODO no bucket ever has more than max tokens
+  @Property
+  public void tokenCountNeverAboveMaxLimit(
+      @From(TestingBucketGenerator.class) TestingBucketBundle testingBundle,
+      @InRange(minInt = -100, maxInt = 100) int offsetFromNow) {
+
+    TokenBucket bucket = testingBundle.getBucket();
+    TokenBucketLimits limits = testingBundle.getLimits();
+
+    Map<String, TokenBucket> backingMap = createMapWithBucket(bucket);
+    TokenBucketStrategy strategy = createStrategy(backingMap, limits);
+    strategy.apply(createRequest(bucket, offsetFromNow));
+
+    assertThat(backingMap.get(bucket.getUserId()).getRemainingTokens()).isLessThanOrEqualTo(limits.getTokensPerWindow());
+  }
+
   @Property
   public void tokenCountNeverDropsBelowZero(
-      @From(TokenBucketGenerator.class) TokenBucket bucket,
-      @From(TokenBucketLimitsGenerator.class) TokenBucketLimits limits,
+      @From(TestingBucketGenerator.class) TestingBucketBundle testingBundle,
       @InRange(minInt = -100, maxInt = 100) int offsetFromNow) {
+
+    TokenBucket bucket = testingBundle.getBucket();
+    TokenBucketLimits limits = testingBundle.getLimits();
 
     Map<String, TokenBucket> backingMap = createMapWithBucket(bucket);
     TokenBucketStrategy strategy = createStrategy(backingMap, limits);
@@ -33,8 +49,32 @@ public class TokenBucketStrategyPropertyTest {
     assertThat(backingMap.get(bucket.getUserId()).getRemainingTokens()).isGreaterThanOrEqualTo(0);
   }
 
-  //TODO no bucket ever has less than zero tokens
-  //TODO no debit event removes more than one token
+  @Property
+  public void neverDebitMoreThanOneToken(
+      @From(TestingBucketGenerator.class) TestingBucketBundle testingBundle,
+      @InRange(minInt = -100, maxInt = 100) int offsetFromNow) {
+
+    TokenBucket bucket = testingBundle.getBucket();
+    TokenBucketLimits limits = testingBundle.getLimits();
+
+    Map<String, TokenBucket> backingMap = createMapWithBucket(bucket);
+    TokenBucketStrategy strategy = createStrategy(backingMap, limits);
+    strategy.apply(createRequest(bucket, offsetFromNow));
+
+    int tokensBefore = bucket.getRemainingTokens();
+    int remainingTokens = backingMap.get(bucket.getUserId()).getRemainingTokens();
+
+    if (tokensBefore > 0) {
+      assertThat(remainingTokens).isIn(
+          tokensBefore - 1,                 // debit single token
+          limits.getTokensPerWindow() - 1); // reset window and debit single token
+    }
+    if (tokensBefore == 0) {
+      assertThat(remainingTokens).isIn(
+          0,                                // blocked, so tokens stay at 0
+          limits.getTokensPerWindow() - 1); // reset window and debit single token
+    }
+  }
   //TODO empty buckets stay empty until reset time
   //TODO empty bucket time remaining always accurate += 1 second
 
