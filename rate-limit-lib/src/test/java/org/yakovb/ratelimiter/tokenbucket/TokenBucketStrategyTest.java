@@ -27,14 +27,14 @@ public class TokenBucketStrategyTest {
   private static final int MAX_TOKENS = 50;
 
   @Mock
-  private TokenBucketLimits limits;
+  private RateLimitDetails limits;
   private Map<String, TokenBucket> backingMap;
   private TokenBucketStrategy strategy;
 
   @Before
   public void before() {
     backingMap = new HashMap<>();
-    when(limits.getTokensPerWindow()).thenReturn(MAX_TOKENS);
+    when(limits.getRequestsPerWindow()).thenReturn(MAX_TOKENS);
     when(limits.getTimeWindow()).thenReturn(Duration.ofSeconds(1));
 
     strategy = new TokenBucketStrategy(new InMemoryTokenBucketStore(backingMap), limits);
@@ -67,7 +67,7 @@ public class TokenBucketStrategyTest {
 
     TokenBucket userBucket = backingMap.get(USER_ID);
     assertThat(userBucket).isNotNull();
-    assertThat(userBucket.getRemainingTokens()).isEqualTo(limits.getTokensPerWindow() - 1);
+    assertThat(userBucket.getRemainingTokens()).isEqualTo(limits.getRequestsPerWindow() - 1);
   }
 
   @Test

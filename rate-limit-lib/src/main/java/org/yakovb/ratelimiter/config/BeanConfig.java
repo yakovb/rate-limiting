@@ -15,9 +15,9 @@ import org.yakovb.ratelimiter.config.BeanConfig.RateLimitConfig;
 import org.yakovb.ratelimiter.model.RateLimitStrategy;
 import org.yakovb.ratelimiter.model.UserRequestDataStore;
 import org.yakovb.ratelimiter.tokenbucket.InMemoryTokenBucketStore;
+import org.yakovb.ratelimiter.tokenbucket.RateLimitDetails;
 import org.yakovb.ratelimiter.tokenbucket.StoreCleaner;
 import org.yakovb.ratelimiter.tokenbucket.TokenBucket;
-import org.yakovb.ratelimiter.tokenbucket.TokenBucketLimits;
 import org.yakovb.ratelimiter.tokenbucket.TokenBucketStrategy;
 
 @Configuration
@@ -32,8 +32,19 @@ public class BeanConfig {
 
   @Bean
   @ConditionalOnMissingBean
-  public RateLimitStrategy rateLimitStrategy() {
-    return new TokenBucketStrategy(userRequestDataStore(), tokenBucketLimits());
+  public RateLimitStrategy rateLimitStrategy(RateLimitDetails rateLimitDetails) {
+    return new TokenBucketStrategy(userRequestDataStore(), rateLimitDetails);
+  }
+
+  @Bean
+  public RateLimitDetails rateLimitDetails() {
+    if (rateLimitConfig == null) {
+      return new RateLimitDetails(DEFAULT_WINDOW, DEFAULT_TOKENS);
+    }
+
+    return new RateLimitDetails(
+        Duration.ofMinutes(rateLimitConfig.getWindowMinutes()),
+        rateLimitConfig.getWindowRequests());
   }
 
   private UserRequestDataStore<String, TokenBucket> userRequestDataStore() {
@@ -42,16 +53,6 @@ public class BeanConfig {
     storeCleaner.startCleaningInBackground(backingMap);
 
     return new InMemoryTokenBucketStore(backingMap);
-  }
-
-  private TokenBucketLimits tokenBucketLimits() {
-    if (rateLimitConfig == null) {
-      return new TokenBucketLimits(DEFAULT_WINDOW, DEFAULT_TOKENS);
-    }
-
-    return new TokenBucketLimits(
-        Duration.ofMinutes(rateLimitConfig.getWindowMinutes()),
-        rateLimitConfig.getWindowRequests());
   }
 
 

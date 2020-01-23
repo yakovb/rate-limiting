@@ -15,12 +15,12 @@ public class TokenBucketStrategy implements RateLimitStrategy {
 
   private static final Optional<RateLimitResult> ALLOW_REQUEST = Optional.empty();
   private final UserRequestDataStore<String, TokenBucket> store;
-  private final TokenBucketLimits tokenBucketLimits;
+  private final RateLimitDetails tokenBucketLimits;
   private final Random random;
 
   public TokenBucketStrategy(
       UserRequestDataStore<String, TokenBucket> store,
-      TokenBucketLimits tokenBucketLimits) {
+      RateLimitDetails tokenBucketLimits) {
     this.store = store;
     this.tokenBucketLimits = tokenBucketLimits;
     this.random = new Random();
@@ -68,7 +68,7 @@ public class TokenBucketStrategy implements RateLimitStrategy {
         id -> TokenBucket.builder()
             .userId(id)
             .insertionReference(insertionRef)
-            .remainingTokens(tokenBucketLimits.getTokensPerWindow() - 1)
+            .remainingTokens(tokenBucketLimits.getRequestsPerWindow() - 1)
             .bucketResetTime(now.plus(tokenBucketLimits.getTimeWindow()))
             .exceededLimit(false)
             .build());
@@ -80,7 +80,7 @@ public class TokenBucketStrategy implements RateLimitStrategy {
         (key, bucket) -> TokenBucket.builder()
             .userId(requesterId)
             .insertionReference(insertionRef)
-            .remainingTokens(tokenBucketLimits.getTokensPerWindow() - 1)
+            .remainingTokens(tokenBucketLimits.getRequestsPerWindow() - 1)
             .bucketResetTime(now.plus(tokenBucketLimits.getTimeWindow()))
             .exceededLimit(false)
             .build());

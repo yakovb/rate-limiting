@@ -25,13 +25,13 @@ public class TokenBucketStrategyPropertyTest {
       @InRange(minInt = -100, maxInt = 100) int offsetFromNow) {
 
     TokenBucket bucket = testingBundle.getBucket();
-    TokenBucketLimits limits = testingBundle.getLimits();
+    RateLimitDetails limits = testingBundle.getLimits();
 
     Map<String, TokenBucket> backingMap = createMapWithBucket(bucket);
     TokenBucketStrategy strategy = createStrategy(backingMap, limits);
     strategy.apply(createRequest(bucket, offsetFromNow));
 
-    assertThat(backingMap.get(bucket.getUserId()).getRemainingTokens()).isLessThanOrEqualTo(limits.getTokensPerWindow());
+    assertThat(backingMap.get(bucket.getUserId()).getRemainingTokens()).isLessThanOrEqualTo(limits.getRequestsPerWindow());
   }
 
   @Property
@@ -40,7 +40,7 @@ public class TokenBucketStrategyPropertyTest {
       @InRange(minInt = -100, maxInt = 100) int offsetFromNow) {
 
     TokenBucket bucket = testingBundle.getBucket();
-    TokenBucketLimits limits = testingBundle.getLimits();
+    RateLimitDetails limits = testingBundle.getLimits();
 
     Map<String, TokenBucket> backingMap = createMapWithBucket(bucket);
     TokenBucketStrategy strategy = createStrategy(backingMap, limits);
@@ -55,7 +55,7 @@ public class TokenBucketStrategyPropertyTest {
       @InRange(minInt = -100, maxInt = 100) int offsetFromNow) {
 
     TokenBucket bucket = testingBundle.getBucket();
-    TokenBucketLimits limits = testingBundle.getLimits();
+    RateLimitDetails limits = testingBundle.getLimits();
 
     Map<String, TokenBucket> backingMap = createMapWithBucket(bucket);
     TokenBucketStrategy strategy = createStrategy(backingMap, limits);
@@ -67,16 +67,16 @@ public class TokenBucketStrategyPropertyTest {
     if (tokensBefore > 0) {
       assertThat(remainingTokens).isIn(
           tokensBefore - 1,                 // debit single token
-          limits.getTokensPerWindow() - 1); // reset window and debit single token
+          limits.getRequestsPerWindow() - 1); // reset window and debit single token
     }
     if (tokensBefore == 0) {
       assertThat(remainingTokens).isIn(
           0,                                // blocked, so tokens stay at 0
-          limits.getTokensPerWindow() - 1); // reset window and debit single token
+          limits.getRequestsPerWindow() - 1); // reset window and debit single token
     }
   }
 
-  private static TokenBucketStrategy createStrategy(Map<String, TokenBucket> map, TokenBucketLimits limits) {
+  private static TokenBucketStrategy createStrategy(Map<String, TokenBucket> map, RateLimitDetails limits) {
     return new TokenBucketStrategy(
         new InMemoryTokenBucketStore(map),
         limits);
