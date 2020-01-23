@@ -1,1 +1,5 @@
-
+ratelimits:
+  # How long should a window be? (i.e. n requests allowed per window)
+  windowMinutes: 60
+  # How many requests do we allow per window?
+  windowRequests: 2
