@@ -50,7 +50,7 @@ public class BeanConfig {
 
     return new TokenBucketLimits(
         Duration.ofMinutes(rateLimitConfig.getWindowMinutes()),
-        rateLimitConfig.getWindowTokens());
+        rateLimitConfig.getWindowRequests());
   }
 
 
@@ -59,6 +59,6 @@ public class BeanConfig {
   @ConfigurationProperties(prefix = "ratelimits")
   static class RateLimitConfig {
     private int windowMinutes;
-    private int windowTokens;
+    private int windowRequests;
   }
 }
