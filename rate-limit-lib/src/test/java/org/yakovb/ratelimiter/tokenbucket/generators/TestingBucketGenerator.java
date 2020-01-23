@@ -8,7 +8,7 @@ import java.time.Instant;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import org.yakovb.ratelimiter.tokenbucket.TokenBucket;
-import org.yakovb.ratelimiter.tokenbucket.TokenBucketLimits;
+import org.yakovb.ratelimiter.tokenbucket.RateLimitDetails;
 import org.yakovb.ratelimiter.tokenbucket.generators.TestingBucketGenerator.TestingBucketBundle;
 
 public class TestingBucketGenerator extends Generator<TestingBucketBundle> {
@@ -19,11 +19,11 @@ public class TestingBucketGenerator extends Generator<TestingBucketBundle> {
 
   @Override
   public TestingBucketBundle generate(SourceOfRandomness random, GenerationStatus status) {
-    TokenBucketLimits limits = gen().oneOf(new TokenBucketLimitsGenerator()).generate(random, status);
+    RateLimitDetails limits = gen().oneOf(new TokenBucketLimitsGenerator()).generate(random, status);
 
     String userId = Integer.toString(random.nextInt(1, 5));
     int insertionRef = random.nextInt(1, 10);
-    int tokens = random.nextInt(0, limits.getTokensPerWindow());
+    int tokens = random.nextInt(0, limits.getRequestsPerWindow());
     Instant resetTime = calcResetTime(limits, random);
 
     TokenBucket bucket = TokenBucket.builder()
@@ -37,7 +37,7 @@ public class TestingBucketGenerator extends Generator<TestingBucketBundle> {
     return new TestingBucketBundle(bucket, limits);
   }
 
-  private static Instant calcResetTime(TokenBucketLimits limits, SourceOfRandomness random) {
+  private static Instant calcResetTime(RateLimitDetails limits, SourceOfRandomness random) {
     Instant now = Instant.now();
     Duration offset = limits.getTimeWindow().dividedBy(2);
     return random.nextBoolean() ? now.plus(offset) : now.minus(offset);
@@ -48,6 +48,6 @@ public class TestingBucketGenerator extends Generator<TestingBucketBundle> {
   @AllArgsConstructor
   public static class TestingBucketBundle {
     private final TokenBucket bucket;
-    private final TokenBucketLimits limits;
+    private final RateLimitDetails limits;
   }
 }
