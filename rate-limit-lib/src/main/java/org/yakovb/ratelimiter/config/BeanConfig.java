@@ -6,6 +6,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import lombok.Getter;
 import lombok.Setter;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
@@ -30,12 +31,12 @@ public class BeanConfig {
   private RateLimitConfig rateLimitConfig;
 
   @Bean
+  @ConditionalOnMissingBean
   public RateLimitStrategy rateLimitStrategy() {
     return new TokenBucketStrategy(userRequestDataStore(), tokenBucketLimits());
   }
 
-  @Bean
-  public UserRequestDataStore<String, TokenBucket> userRequestDataStore() {
+  private UserRequestDataStore<String, TokenBucket> userRequestDataStore() {
     Map<String, TokenBucket> backingMap = new ConcurrentHashMap<>();
     StoreCleaner storeCleaner = new StoreCleaner();
     storeCleaner.startCleaningInBackground(backingMap);
