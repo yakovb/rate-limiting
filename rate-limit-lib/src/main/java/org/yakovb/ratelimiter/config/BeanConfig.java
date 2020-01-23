@@ -14,6 +14,7 @@ import org.springframework.context.annotation.Configuration;
 import org.yakovb.ratelimiter.config.BeanConfig.RateLimitConfig;
 import org.yakovb.ratelimiter.model.RateLimitStrategy;
 import org.yakovb.ratelimiter.model.UserRequestDataStore;
+import org.yakovb.ratelimiter.servlet.RateLimitFilter;
 import org.yakovb.ratelimiter.tokenbucket.InMemoryTokenBucketStore;
 import org.yakovb.ratelimiter.tokenbucket.RateLimitDetails;
 import org.yakovb.ratelimiter.tokenbucket.StoreCleaner;
@@ -29,6 +30,11 @@ public class BeanConfig {
 
   @Autowired(required = false)
   private RateLimitConfig rateLimitConfig;
+
+  @Bean
+  public RateLimitFilter rateLimitFilter(RateLimitStrategy rateLimitStrategy) {
+    return new RateLimitFilter(rateLimitStrategy);
+  }
 
   @Bean
   @ConditionalOnMissingBean
