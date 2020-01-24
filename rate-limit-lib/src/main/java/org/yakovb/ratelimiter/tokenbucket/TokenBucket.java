@@ -9,7 +9,6 @@ import lombok.Getter;
 public class TokenBucket {
 
   private final String userId;
-  private final int insertionReference;
   private final int remainingTokens;
   private final Instant bucketResetTime;
   private final boolean exceededLimit;

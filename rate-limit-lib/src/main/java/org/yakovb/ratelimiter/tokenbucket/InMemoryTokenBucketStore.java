@@ -1,9 +1,7 @@
 package org.yakovb.ratelimiter.tokenbucket;
 
 import java.util.Map;
-import java.util.Optional;
 import java.util.function.BiFunction;
-import java.util.function.Function;
 import org.yakovb.ratelimiter.model.UserRequestDataStore;
 
 public class InMemoryTokenBucketStore implements UserRequestDataStore<String, TokenBucket> {
@@ -15,18 +13,11 @@ public class InMemoryTokenBucketStore implements UserRequestDataStore<String, To
   }
 
   @Override
-  public TokenBucket computeIfAbsent(
-      String key,
-      Function<? super String, ? extends TokenBucket> updateFunction) {
+  public TokenBucket insert(
+      String userId,
+      TokenBucket bucketIfNewKey,
+      BiFunction<? super TokenBucket, ? super TokenBucket, ? extends TokenBucket> updateFunctionIfExistingKey) {
 
-    return store.computeIfAbsent(key, updateFunction);
-  }
-
-  @Override
-  public Optional<TokenBucket> computeIfPresent(
-      String key,
-      BiFunction<? super String, ? super TokenBucket, ? extends TokenBucket> updateFunction) {
-
-    return Optional.ofNullable(store.computeIfPresent(key, updateFunction));
+    return store.merge(userId, bucketIfNewKey, updateFunctionIfExistingKey);
   }
 }
