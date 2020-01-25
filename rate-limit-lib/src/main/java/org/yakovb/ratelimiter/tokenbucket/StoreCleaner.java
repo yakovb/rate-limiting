@@ -6,6 +6,11 @@ import java.util.Map;
 import java.util.Timer;
 import java.util.TimerTask;
 
+/**
+ * Utility class to remove stale entries from the token bucket data store. This deals with the case of users "dropping off"
+ * and leaving their request-tracking data in the store forever. It works based on a schedule, finding token buckets
+ * that have not been updated in a given length of time.
+ */
 public class StoreCleaner {
 
   private static final boolean IS_DAEMON = true;

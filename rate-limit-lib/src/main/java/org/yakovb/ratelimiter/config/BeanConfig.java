@@ -21,6 +21,9 @@ import org.yakovb.ratelimiter.tokenbucket.StoreCleaner;
 import org.yakovb.ratelimiter.tokenbucket.TokenBucket;
 import org.yakovb.ratelimiter.tokenbucket.TokenBucketStrategy;
 
+/**
+ * Defines the classes that will be available to users of this library.
+ */
 @Configuration
 @EnableConfigurationProperties(RateLimitConfig.class)
 public class BeanConfig {
@@ -36,12 +39,19 @@ public class BeanConfig {
     return new RateLimitFilter(rateLimitStrategy);
   }
 
+  /**
+   * A default Rate Limit Strategy is provided only if users of this library don't provide one themselves.
+   */
   @Bean
   @ConditionalOnMissingBean
   public RateLimitStrategy rateLimitStrategy(RateLimitDetails rateLimitDetails) {
     return new TokenBucketStrategy(userRequestDataStore(), rateLimitDetails);
   }
 
+  /**
+   * Rate limit window + allowed requests have some defaults set, if users of this library done define any in their
+   * application property file.
+   */
   @Bean
   public RateLimitDetails rateLimitDetails() {
     if (rateLimitConfig == null) {

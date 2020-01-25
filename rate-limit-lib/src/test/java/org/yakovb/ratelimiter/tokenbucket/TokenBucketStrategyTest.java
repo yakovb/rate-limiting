@@ -17,8 +17,10 @@ import org.yakovb.ratelimiter.genericimpl.RequestImpl;
 import org.yakovb.ratelimiter.model.RateLimitResult;
 import org.yakovb.ratelimiter.model.Request;
 
-//TODO example tests, also do a property test
-// javadoc: point is to describe the intended behaviour of the class
+/**
+ * Example-based tests. The purpose of this class is to describe the behaviour of the Token Bucket Strategy by way of
+ * providing examples of happy path and edge cases.
+ */
 @RunWith(MockitoJUnitRunner.class)
 public class TokenBucketStrategyTest {
 

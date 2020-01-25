@@ -1,3 +1,4 @@
-# TODO explain what this auto config does
+# This enables Spring auto-configuration. That is, it will take all of the classes created via @Bean methods in
+# BeanConfig.java and make them available to a Spring Boot application that uses this library.
 org.springframework.boot.autoconfigure.EnableAutoConfiguration=\
 org.yakovb.ratelimiter.config.BeanConfig

@@ -14,8 +14,10 @@ import org.junit.runner.RunWith;
 import org.yakovb.ratelimiter.genericimpl.RequestImpl;
 import org.yakovb.ratelimiter.tokenbucket.generators.TestingBucketGenerator;
 
-//TODO javadoc: explain purpose of property tests for this class
-// ie ensure invariants hold
+/**
+ * Property-based test of the Token Bucket Strategy. This class specifies key properties of the Strategy and the
+ * conditions for which they must be true.
+ */
 @RunWith(JUnitQuickcheck.class)
 public class TokenBucketStrategyPropertyTest {
 
@@ -66,12 +68,12 @@ public class TokenBucketStrategyPropertyTest {
 
     if (tokensBefore > 0) {
       assertThat(remainingTokens).isIn(
-          tokensBefore - 1,                 // debit single token
+          tokensBefore - 1,                   // debit single token
           limits.getRequestsPerWindow() - 1); // reset window and debit single token
     }
     if (tokensBefore == 0) {
       assertThat(remainingTokens).isIn(
-          0,                                // blocked, so tokens stay at 0
+          0,                                  // blocked, so tokens stay at 0
           limits.getRequestsPerWindow() - 1); // reset window and debit single token
     }
   }

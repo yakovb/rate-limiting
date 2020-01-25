@@ -3,7 +3,6 @@ package org.yakovb.ratelimiter.tokenbucket;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.Optional;
-import java.util.Random;
 import java.util.function.BiFunction;
 import org.yakovb.ratelimiter.genericimpl.RateLimitResultImpl;
 import org.yakovb.ratelimiter.model.RateLimitResult;
@@ -11,39 +10,42 @@ import org.yakovb.ratelimiter.model.RateLimitStrategy;
 import org.yakovb.ratelimiter.model.Request;
 import org.yakovb.ratelimiter.model.UserRequestDataStore;
 
-//TODO javadoc, basic explanation of token bucket algo
+/**
+ * The Toke Bucket rate limiting strategy works based on the notion: each user gets a certain number of tokens that they
+ * are allowed to use in a given time period. Each request "uses up" a token. If a user has no more tokens when they
+ * make a request, it's denied. When the time period is up, the bucket "resets", i.e. fills up with a fresh batch of tokens.
+ */
 public class TokenBucketStrategy implements RateLimitStrategy {
 
-  private static final Optional<RateLimitResult> ALLOW_REQUEST = Optional.empty();
   private final UserRequestDataStore<String, TokenBucket> store;
   private final RateLimitDetails tokenBucketLimits;
-  private final Random random;
 
   public TokenBucketStrategy(
       UserRequestDataStore<String, TokenBucket> store,
       RateLimitDetails tokenBucketLimits) {
     this.store = store;
     this.tokenBucketLimits = tokenBucketLimits;
-    this.random = new Random();
   }
 
   @Override
   public Optional<RateLimitResult> apply(Request request) {
-    TokenBucket newBucket = bucketIfFirstRequest(request);
+    TokenBucket newBucket = bucketForFirstRequest(request);
 
     TokenBucket resultBucket = store.insert(
         request.getRequesterId(),
         newBucket,
-        bucketIfNotFirstRequest(request));
+        bucketForSubsequentRequests(request));
 
     if (resultBucket.isExceededLimit()) {
       long waitInSeconds = computeWaitTime(request.getRequestTime(), resultBucket);
       return Optional.of(new RateLimitResultImpl(waitInSeconds));
     }
-    return ALLOW_REQUEST;
+
+    return Optional.empty();
   }
 
-  private TokenBucket bucketIfFirstRequest(Request request) {
+  // The token bucket to insert if this is the user's first request for the time window
+  private TokenBucket bucketForFirstRequest(Request request) {
     return TokenBucket.builder()
         .userId(request.getRequesterId())
         .remainingTokens(tokenBucketLimits.getRequestsPerWindow() - 1)
@@ -52,13 +54,14 @@ public class TokenBucketStrategy implements RateLimitStrategy {
         .build();
   }
 
-  private BiFunction<TokenBucket, TokenBucket, TokenBucket> bucketIfNotFirstRequest(Request request) {
+  // The function to compute the bucket for insertion if the user has already made at least one request in the time window
+  private BiFunction<TokenBucket, TokenBucket, TokenBucket> bucketForSubsequentRequests(Request request) {
     return (existingBucket, notUsed) -> {
 
       // Should we reset the time window?
       if (request.getRequestTime().isAfter(existingBucket.getBucketResetTime())) {
         // Yes it's a new time window, so user gets a new bucket and we allow the request
-        return resetBucket(request.getRequesterId(), request.getRequestTime());
+        return bucketForFirstRequest(request);
       }
 
       // No it's an existing time window...
@@ -73,16 +76,7 @@ public class TokenBucketStrategy implements RateLimitStrategy {
     };
   }
 
-  private TokenBucket resetBucket(String requesterId, Instant requestTime) {
-    return TokenBucket.builder()
-        .userId(requesterId)
-        .remainingTokens(tokenBucketLimits.getRequestsPerWindow() - 1)
-        .bucketResetTime(requestTime.plus(tokenBucketLimits.getTimeWindow()))
-        .exceededLimit(false)
-        .build();
-  }
-
-  private TokenBucket debitTokenFromBucket(String requesterId, TokenBucket tokenBucket) {
+  private static TokenBucket debitTokenFromBucket(String requesterId, TokenBucket tokenBucket) {
     int remainingTokens = tokenBucket.getRemainingTokens() - 1;
     return TokenBucket.builder()
         .userId(requesterId)
@@ -92,7 +86,7 @@ public class TokenBucketStrategy implements RateLimitStrategy {
         .build();
   }
 
-  private TokenBucket blockBucket(String requesterId, TokenBucket tokenBucket) {
+  private static TokenBucket blockBucket(String requesterId, TokenBucket tokenBucket) {
     return TokenBucket.builder()
         .userId(requesterId)
         .bucketResetTime(tokenBucket.getBucketResetTime())
