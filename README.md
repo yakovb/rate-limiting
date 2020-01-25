@@ -3,7 +3,7 @@
 ## Purpose
 Provide a Java Spring library for rate-limiting HTTP requests on a per-user basis. The user must be identifiable by some sort of key, and that key must be part of the request. The algorithm used to apply rate limits is configurable, but a default implementation of the Token Bucket algorithm is provided. 
 
-The idea is that the library is included as a project dependency, most likely in a project that's running an HTTP server. Spring Autoconfiguration is provided, and details on how to use this in a project are below. 
+The idea is that the library is included as a project dependency in a project that's running an HTTP server. Spring Autoconfiguration is provided, and details on how to use this in a project are below. 
 
 
 ## Decisions and assumptions
@@ -22,13 +22,14 @@ A note about expiring time periods: To simplify things, I've decided to reset a 
   - I then make another request
   - My time period starts from the moment I made my last request
   - That is, for the period in which I was idle (i.e. didn't make any requests) there is no background process checking my bucket and continuously resetting it. The reset is triggered when I become active again and start making requests. 
+  - Users are identified by passing their ID in a HTTP Header `User-id`. If this header isn't provided, the request is considered unauthorised.
 
 
 ## Extending the module 
-To create an alternative rate limiting algorithm requires implementing the following interfaces:
+To create an alternative rate limiting algorithm simply implement the following interfaces:
   - `RateLimitStrategy`: the container for the algorithm. 
-    - Input is a `Request` object that holds a user ID and time of the request
-    - Output is an `Optional<RateLimitResult>`, i.e. if the request is allowed the `Optional` is empty; if it's blocked the `RateLimitResult` returns an HTTP status code (default 429) and a message. The message should inform the user that they're blocked and how long to wait until trying again. 
+  - `Request`: the input to the `RateLimitStrategy` that holds a user ID and time of the request
+  - `RateLimitResult`: the output from the `RateLimitStrategy`. Specifically, if the request is allowed the `RateLimitStrategy` should return an empty `java.util.Optional` is empty; if the request is blocked the return value should be an `Optional<RateLimitResult>`. The result will hold an HTTP status code (default 429) and a message. The message should inform the user that they're blocked and how long to wait until trying again. 
 
 
 ## Usage
@@ -46,7 +47,7 @@ In the `rate-limit-lib` directory...
 Run `mvn clean test`. This will run two test classes, one consisting of example-based tests (`TokenBucketStrategyTest.java`) and the other of property-based tests (`TokenBucketStrategyPropertyTest`). The test methods in these classes provide a good description of the intended behaviour of the token bucket rate limiting strategy. 
 
 #### Installing 
-To install the library in you local maven repository, run `mvn clean install`. This will make it available for use in the provided example server. 
+To install the library in your local maven repository, run `mvn clean install`. This will make it available for use in the provided example server. 
 
 
 ### The example server
@@ -65,6 +66,6 @@ If want to try the server out with a different rate limiting time window, or a d
 
 
 #### Exercising the server
-A little bash script is provided to simplify testing the example server, located at `example-server/load-test.sh`. To run it, first make it executable with `chmod +x load-test.sh`. You can then send 10 requests to the server by calling it: `./load-test.sh`. To send a different number of request, pass the number as an argument to the script, e.g. `./load-test.sh 100`. 
+A little bash script is provided to simplify testing the example server, located at `example-server/load-test.sh`. To run it, first make it executable with `chmod +x load-test.sh`. You can then send 10 requests to the server by calling it: `./load-test.sh`. To send a different number of request, pass the number as an argument to the script, e.g. `./load-test.sh 100`. To get some more detailed info on what the script does, call it with `./load-test.sh --help`. 
 
 The script will send the requests to `localhost:8080` concurrently and print the result of each request to STDOUT. It's only intended for small tests to keep the output readable. The goal is to see the count of successful responses match what you have configured for the example-server.
