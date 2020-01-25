@@ -5,18 +5,21 @@ import java.time.Instant;
 import java.util.Map;
 import java.util.Timer;
 import java.util.TimerTask;
+import lombok.extern.slf4j.Slf4j;
 
 /**
  * Utility class to remove stale entries from the token bucket data store. This deals with the case of users "dropping off"
  * and leaving their request-tracking data in the store forever. It works based on a schedule, finding token buckets
  * that have not been updated in a given length of time.
  */
+@Slf4j
 public class StoreCleaner {
 
   private static final boolean IS_DAEMON = true;
   private static final long THIRTY_MINUTES = Duration.ofMinutes(30).toMillis();
 
   public void startCleaningInBackground(Map<String, TokenBucket> store) {
+    log.debug("Starting token bucket store cleaner...");
     Timer timer = new Timer(IS_DAEMON);
     timer.scheduleAtFixedRate(
         new CleanerTask(store),
@@ -37,6 +40,7 @@ public class StoreCleaner {
 
     @Override
     public void run() {
+      log.debug("Executing a store clean");
       store.forEach((userId, bucket) -> {
 
         if (bucketNotResetInLast(bucket, INACTIVITY_PERIOD)) {

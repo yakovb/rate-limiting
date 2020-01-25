@@ -5,6 +5,7 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import lombok.Getter;
 import lombok.Setter;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.context.properties.ConfigurationProperties;
@@ -24,6 +25,7 @@ import org.yakovb.ratelimiter.tokenbucket.TokenBucketStrategy;
 /**
  * Defines the classes that will be available to users of this library.
  */
+@Slf4j
 @Configuration
 @EnableConfigurationProperties(RateLimitConfig.class)
 public class BeanConfig {
@@ -45,6 +47,9 @@ public class BeanConfig {
   @Bean
   @ConditionalOnMissingBean
   public RateLimitStrategy rateLimitStrategy(RateLimitDetails rateLimitDetails) {
+    log.info("Rate limit details: {} requests per {} minutes",
+        rateLimitDetails.getRequestsPerWindow(),
+        rateLimitDetails.getTimeWindow().toMinutes());
     return new TokenBucketStrategy(userRequestDataStore(), rateLimitDetails);
   }
 

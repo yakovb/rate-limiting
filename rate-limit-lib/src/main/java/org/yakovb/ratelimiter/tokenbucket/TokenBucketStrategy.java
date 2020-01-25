@@ -4,6 +4,7 @@ import java.time.Duration;
 import java.time.Instant;
 import java.util.Optional;
 import java.util.function.BiFunction;
+import lombok.extern.slf4j.Slf4j;
 import org.yakovb.ratelimiter.genericimpl.RateLimitResultImpl;
 import org.yakovb.ratelimiter.model.RateLimitResult;
 import org.yakovb.ratelimiter.model.RateLimitStrategy;
@@ -15,6 +16,7 @@ import org.yakovb.ratelimiter.model.UserRequestDataStore;
  * are allowed to use in a given time period. Each request "uses up" a token. If a user has no more tokens when they
  * make a request, it's denied. When the time period is up, the bucket "resets", i.e. fills up with a fresh batch of tokens.
  */
+@Slf4j
 public class TokenBucketStrategy implements RateLimitStrategy {
 
   private final UserRequestDataStore<String, TokenBucket> store;
@@ -29,6 +31,7 @@ public class TokenBucketStrategy implements RateLimitStrategy {
 
   @Override
   public Optional<RateLimitResult> apply(Request request) {
+    log.info("Processing request for {} at {}", request.getRequesterId(), request.getRequestTime().toString());
     TokenBucket newBucket = bucketForFirstRequest(request);
 
     TokenBucket resultBucket = store.insert(
@@ -38,6 +41,9 @@ public class TokenBucketStrategy implements RateLimitStrategy {
 
     if (resultBucket.isExceededLimit()) {
       long waitInSeconds = computeWaitTime(request.getRequestTime(), resultBucket);
+      log.info("Request for {} blocked: rate limit exceeded. Retry in {} seconds",
+          request.getRequesterId(),
+          waitInSeconds);
       return Optional.of(new RateLimitResultImpl(waitInSeconds));
     }
 
@@ -61,17 +67,20 @@ public class TokenBucketStrategy implements RateLimitStrategy {
       // Should we reset the time window?
       if (request.getRequestTime().isAfter(existingBucket.getBucketResetTime())) {
         // Yes it's a new time window, so user gets a new bucket and we allow the request
+        log.info("Request for {} allowed. Reset time window, debit new bucket", request.getRequesterId());
         return bucketForFirstRequest(request);
       }
 
       // No it's an existing time window...
       if (existingBucket.getRemainingTokens() > 0) {
         // User still has tokens, so debit one and allow request
+        log.info("Request for {} allowed. Debit bucket", request.getRequesterId());
         return debitTokenFromBucket(request.getRequesterId(), existingBucket);
       }
 
       // By this point we know the user has no tokens and it's too early to reset the window
       // Block time
+      log.info("Request for {} blocked", request.getRequesterId());
       return blockBucket(request.getRequesterId(), existingBucket);
     };
   }
