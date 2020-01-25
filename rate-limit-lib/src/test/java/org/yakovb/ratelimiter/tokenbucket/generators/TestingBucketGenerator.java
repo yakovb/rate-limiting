@@ -7,8 +7,8 @@ import java.time.Duration;
 import java.time.Instant;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
-import org.yakovb.ratelimiter.tokenbucket.TokenBucket;
 import org.yakovb.ratelimiter.tokenbucket.RateLimitDetails;
+import org.yakovb.ratelimiter.tokenbucket.TokenBucket;
 import org.yakovb.ratelimiter.tokenbucket.generators.TestingBucketGenerator.TestingBucketBundle;
 
 public class TestingBucketGenerator extends Generator<TestingBucketBundle> {
@@ -22,13 +22,11 @@ public class TestingBucketGenerator extends Generator<TestingBucketBundle> {
     RateLimitDetails limits = gen().oneOf(new TokenBucketLimitsGenerator()).generate(random, status);
 
     String userId = Integer.toString(random.nextInt(1, 5));
-    int insertionRef = random.nextInt(1, 10);
     int tokens = random.nextInt(0, limits.getRequestsPerWindow());
     Instant resetTime = calcResetTime(limits, random);
 
     TokenBucket bucket = TokenBucket.builder()
         .userId(userId)
-        .insertionReference(insertionRef)
         .remainingTokens(tokens)
         .bucketResetTime(resetTime)
         .exceededLimit(tokens == 0)

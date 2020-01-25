@@ -14,6 +14,10 @@ import org.yakovb.ratelimiter.genericimpl.RequestImpl;
 import org.yakovb.ratelimiter.model.RateLimitResult;
 import org.yakovb.ratelimiter.model.RateLimitStrategy;
 
+/**
+ * Convenience class provided to library users so they don't have to intercept HTTP requests before applying their
+ * rate limiting strategy. This servlet filter will block or allow requests based on the results of applying the strategy.
+ */
 public class RateLimitFilter implements Filter {
 
   private static final String USER_ID = "user-id";
@@ -31,6 +35,7 @@ public class RateLimitFilter implements Filter {
     HttpServletRequest request = (HttpServletRequest) servletRequest;
     String userId = request.getHeader(USER_ID);
 
+    // User-id header is required
     if (userId == null) {
       HttpServletResponse response = toHttpResponse(servletResponse);
       response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
@@ -38,8 +43,10 @@ public class RateLimitFilter implements Filter {
       return;
     }
 
+    // Apply the strategy
     Optional<RateLimitResult> blockResult = rateLimitStrategy.apply(new RequestImpl(userId, Instant.now()));
     if (blockResult.isPresent()) {
+      // Need to block
       RateLimitResult block = blockResult.get();
       HttpServletResponse response = toHttpResponse(servletResponse);
       response.setStatus(block.getHttpCode());
@@ -47,6 +54,7 @@ public class RateLimitFilter implements Filter {
       return;
     }
 
+    // Allow the request
     filterChain.doFilter(servletRequest, servletResponse);
   }
 

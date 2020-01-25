@@ -17,12 +17,13 @@ import org.yakovb.ratelimiter.genericimpl.RequestImpl;
 import org.yakovb.ratelimiter.model.RateLimitResult;
 import org.yakovb.ratelimiter.model.Request;
 
-//TODO example tests, also do a property test
-// javadoc: point is to describe the intended behaviour of the class
+/**
+ * Example-based tests. The purpose of this class is to describe the behaviour of the Token Bucket Strategy by way of
+ * providing examples of happy path and edge cases.
+ */
 @RunWith(MockitoJUnitRunner.class)
 public class TokenBucketStrategyTest {
 
-  private static final int INSERTION_REFERENCE = 123;
   private static final String USER_ID = "x";
   private static final int MAX_TOKENS = 50;
 
@@ -81,7 +82,6 @@ public class TokenBucketStrategyTest {
     assertThat(result).isEmpty();
     assertThat(backingMap).hasSize(1);
     assertThat(bucket.getRemainingTokens()).isEqualTo(existingTokens - 1);
-    assertThat(bucket.getInsertionReference()).isNotEqualTo(INSERTION_REFERENCE);
   }
 
   @Test
@@ -93,7 +93,6 @@ public class TokenBucketStrategyTest {
 
     assertThat(backingMap).hasSize(1);
     assertThat(bucket.getRemainingTokens()).isEqualTo(0);
-    assertThat(bucket.getInsertionReference()).isEqualTo(INSERTION_REFERENCE);
 
     assertThat(result).isNotEmpty();
     RateLimitResult rateLimitResult = result.get();
@@ -103,13 +102,13 @@ public class TokenBucketStrategyTest {
   }
 
   @Test
-  public void tokensReachingZeroSetsLimitExceededFlag() {
-    backingMap.put(USER_ID, bucketWithIdAndTokens(USER_ID, 1));
+  public void requestWithZeroTokensSetsLimitExceededFlag() {
+    backingMap.put(USER_ID, bucketWithIdAndTokens(USER_ID, 0));
 
     Optional<RateLimitResult> result = strategy.apply(requestWithId(USER_ID));
     TokenBucket bucket = backingMap.get(USER_ID);
 
-    assertThat(result).isEmpty();
+    assertThat(result).isNotEmpty();
     assertThat(backingMap).hasSize(1);
     assertThat(bucket.getRemainingTokens()).isEqualTo(0);
     assertThat(bucket.isExceededLimit()).isTrue();
@@ -148,7 +147,6 @@ public class TokenBucketStrategyTest {
   private static TokenBucket bucketWithIdAndTokens(String id, int tokens) {
     return TokenBucket.builder()
         .userId(id)
-        .insertionReference(INSERTION_REFERENCE)
         .remainingTokens(tokens)
         .bucketResetTime(Instant.now().plusSeconds(60))
         .build();
@@ -157,7 +155,6 @@ public class TokenBucketStrategyTest {
   private static TokenBucket bucketWithIdAndTokensAndReset(String id, int tokens, Instant reset) {
     return TokenBucket.builder()
         .userId(id)
-        .insertionReference(INSERTION_REFERENCE)
         .remainingTokens(tokens)
         .bucketResetTime(reset)
         .build();

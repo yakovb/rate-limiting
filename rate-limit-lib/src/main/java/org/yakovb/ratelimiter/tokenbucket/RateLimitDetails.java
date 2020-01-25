@@ -3,6 +3,9 @@ package org.yakovb.ratelimiter.tokenbucket;
 import java.time.Duration;
 import lombok.Getter;
 
+/**
+ * Config options determining how many requests to allow in a given time window.
+ */
 @Getter
 public class RateLimitDetails {
 
